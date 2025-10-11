@@ -71,7 +71,8 @@ if not st.session_state.get('hide_final_dataframe', False):
     from urllib.parse import quote
 
     def prepare_url(path):
-        if not path or not isinstance(path, str): return None
+        if not path or not isinstance(path, str):
+            return None
         clean_path = path.replace("\\", "/").lstrip("/")
         if clean_path.startswith("storage/"):
             clean_path = clean_path[len("storage/"):]

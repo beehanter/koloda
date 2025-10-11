@@ -1,27 +1,27 @@
 {
     "memento\\gse\\beekeepers\\beekeepers.csv": {
-        "mtime": 1759914353.2688308,
-        "hash": "f4a639f35ebc95ac2777da83a5ca4d611304e0a990df6bcc0e7092393c53e108",
-        "processed_at": "2025-10-09T07:21:36.053059+00:00"
+        "mtime": 1760212769.9375477,
+        "hash": "9faa7066b6bd3ff858e2c514c164a4e96cdafe486f0d133b5f7cf2fe286d0dba",
+        "processed_at": "2025-10-11T20:35:54.064161+00:00"
     },
     "memento\\gse\\koloda\\koloda.csv": {
-        "mtime": 1759914353.3913248,
-        "hash": "0c4e57e1557a86c0c5cb032f30b2d61f4764fd9f7b5db13f529ddfed7d1ca6bd",
-        "processed_at": "2025-10-09T07:21:36.277678+00:00"
+        "mtime": 1760212769.9375477,
+        "hash": "c5f80a6f3060067ee64b0caf0a51f35856887dfc1c0089118bd6398fa3870a36",
+        "processed_at": "2025-10-11T20:35:54.291648+00:00"
     },
     "memento\\gse\\osmotr\\osmotr.csv": {
-        "mtime": 1759914354.3880906,
-        "hash": "c9fe144537ed7d9bc21fdf8c50c74ed29c09386bcfd7d528323132642daa65cc",
-        "processed_at": "2025-10-09T07:21:36.378354+00:00"
+        "mtime": 1760212769.9781916,
+        "hash": "46732c3be0e22d9ae65c797f3e95788a23bd1802a68ca908325328944d3b4f90",
+        "processed_at": "2025-10-11T20:35:54.544449+00:00"
     },
     "memento\\gse\\paseki\\paseki.csv": {
-        "mtime": 1759914353.3813956,
-        "hash": "a22f65ce6e887571253ef0b0169bf0850b3cfb4d65c0b530f0e0d358e368932d",
-        "processed_at": "2025-10-09T07:21:36.462052+00:00"
+        "mtime": 1760212770.0535226,
+        "hash": "c25d52c71286a6299585412a8cee319ded2f5ee19a1c74f0f5f73b5a5878f06a",
+        "processed_at": "2025-10-11T20:35:54.660528+00:00"
     },
     "memento\\gse\\test\\test.csv": {
-        "mtime": 1759914353.259011,
-        "hash": "a021e7b2ea78b15f6f2813cdc5e02767a26e80e0314a791665a03bbafb839753",
-        "processed_at": "2025-10-09T07:21:36.499908+00:00"
+        "mtime": 1760212770.0975885,
+        "hash": "f01e600f5e6247fa44d39bdd8a3cbc5d3b6bc98e0bcd1c88ddfa83bb03288d46",
+        "processed_at": "2025-10-11T20:35:54.684873+00:00"
     }
 }

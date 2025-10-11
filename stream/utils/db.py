@@ -1,7 +1,6 @@
 # streamlit/utils/db.py
 import psycopg2
 import pandas as pd
-from psycopg2 import sql
 from contextlib import contextmanager
 
 # Параметры подключения — можно вынести в config.py позже

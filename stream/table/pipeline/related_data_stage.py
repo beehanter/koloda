@@ -104,8 +104,11 @@ class RelatedDataStage(PipelineStage):
                 where_clauses, params, all_keys_present = [], [], True
                 for fk_col, ref_col in zip(fk_cols, ref_cols):
                     if fk_col in selected_row and pd.notna(selected_row[fk_col]):
-                        where_clauses.append(f'"{ref_col}" = %s'); params.append(selected_row[fk_col])
-                    else: all_keys_present = False; break
+                        where_clauses.append(f'"{ref_col}" = %s')
+                        params.append(selected_row[fk_col])
+                    else:
+                        all_keys_present = False
+                        break
                 
                 if all_keys_present and where_clauses:
                     query = f'SELECT * FROM "{ref_table}" WHERE {" AND ".join(where_clauses)}'
@@ -114,7 +117,9 @@ class RelatedDataStage(PipelineStage):
                         try:
                             related_df = query_to_df(query, tuple(params))
                             if not related_df.empty:
-                                found_anything = True; st.write(f"**Родительская таблица: `{ref_table}`**"); st.dataframe(related_df, use_container_width=True)
+                                found_anything = True
+                                st.write(f"**Родительская таблица: `{ref_table}`**")
+                                st.dataframe(related_df, use_container_width=True)
                         except Exception as e:
                             st.error(f"Ошибка при запросе к таблице {ref_table}: {e}")
 
@@ -125,9 +130,11 @@ class RelatedDataStage(PipelineStage):
                 where_clauses, params, all_keys_present = [], [], True
                 for ref_col, fk_col in zip(ref_cols, fk_cols):
                     if ref_col in selected_row and pd.notna(selected_row[ref_col]):
-                        where_clauses.append(f'"{fk_col}" = %s'); params.append(selected_row[ref_col])
+                        where_clauses.append(f'"{fk_col}" = %s')
+                        params.append(selected_row[ref_col])
                     else:
-                        all_keys_present = False; break
+                        all_keys_present = False
+                        break
                 
                 if all_keys_present and where_clauses:
                     query = f'SELECT * FROM "{fk_table}" WHERE {" AND ".join(where_clauses)}'

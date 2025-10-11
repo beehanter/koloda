@@ -21,8 +21,8 @@ class DBManager:
                 dbname=os.getenv("POSTGRES_DB"),
                 user=os.getenv("POSTGRES_USER"),
                 password=os.getenv("POSTGRES_PASSWORD"),
-                host=os.getenv("DB_HOST", "localhost"),
-                port=os.getenv("DB_PORT", "5432")
+                host=os.getenv("POSTGRES_HOST", "localhost"),
+                port=os.getenv("POSTGRES_PORT", "5432")
             )
             self.cur = self.conn.cursor()
         except psycopg2.OperationalError as e:
