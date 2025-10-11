@@ -1,0 +1,15 @@
+services:
+  db:
+    build: ./podman
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: bee
+      POSTGRES_PASSWORD: bee
+      POSTGRES_DB: bee
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+  
