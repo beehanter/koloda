@@ -34,7 +34,7 @@ class FilterStage:
                     
                     text_cols = df.select_dtypes(include=['object', 'string']).columns
                     if not text_cols.empty:
-                        mask = df[text_cols].apply(lambda col: col.str.contains(search_query, case=False, na=False)).any(axis=1)
+                        mask = df[text_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False)).any(axis=1)
                         filtered_data[table_name] = df[mask]
 
             # 2. Создание и применение фильтров по колонкам для каждой таблицы
