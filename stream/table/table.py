@@ -10,8 +10,6 @@ from stream.table.pipeline.search_stage import SearchStage
 from stream.table.pipeline.row_selector_stage import RowSelectorStage
 from stream.table.pipeline.related_data_stage import RelatedDataStage
 
-st.set_page_config(layout="wide")
-
 st.title("📊 Гибкий конвейер анализа данных")
 
 # 1. Выбор таблицы
@@ -57,8 +55,6 @@ for stage in stages:
         stage.show_output(df_current)
 
 # 5. Финальный вывод
-st.subheader("Итоговый результат")
-
 # Финальный вывод показывается, только если ни один из этапов
 # не установил флаг для его скрытия (например, EditStage или PhotoViewerStage)
 if not st.session_state.get('hide_final_dataframe', False):
