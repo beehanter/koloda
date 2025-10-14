@@ -49,8 +49,23 @@ def show():
     with st.sidebar:
         map_settings = map_config.render_ui()
     
-    # 5. Отрисовка карты
-    map_renderer.render(filtered_data, map_settings)
+    # 5. Построение буферных зон (если нужно)
+    data_for_render = {}
+    buffer_radius = map_settings.get('buffer_radius', 0)
+    
+    if buffer_radius > 0:
+        for table_name, df in filtered_data.items():
+            if df is not None and not df.empty:
+                # В geo_utils.py нет колонки 'coordinates', но есть 'geometry_wkt'
+                # Убедимся, что передаем правильную колонку, или geo_utils сможет ее найти
+                data_for_render[table_name] = geo_processor.add_buffered_geometry(df, buffer_radius, geom_col='geometry_wkt')
+            else:
+                data_for_render[table_name] = df
+    else:
+        data_for_render = filtered_data
+
+    # 6. Отрисовка карты
+    map_renderer.render(data_for_render, map_settings)
 
 if __name__ == "__main__":
     show()

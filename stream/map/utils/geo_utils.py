@@ -78,6 +78,84 @@ class PostGISProcessor:
             logging.error(f"Ошибка обработки geometry в {table_name}: {e}", exc_info=True)
             return None
     
+    def add_buffered_geometry(self, df, radius, geom_col='coordinates'):
+        """
+        Добавляет в DataFrame столбец с GeoJSON буферной зоны.
+        """
+        if df is None or df.empty or radius <= 0:
+            return df
+
+        # Проверяем, есть ли уже столбец с геометрией в DataFrame. 
+        # Если нет, пытаемся его найти или создать.
+        if geom_col not in df.columns:
+            # Попробуем найти WKT столбец, если основной отсутствует
+            if 'geometry_wkt' in df.columns:
+                from shapely import wkt
+                # Создаем геометрию из WKT
+                df[geom_col] = df['geometry_wkt'].apply(wkt.loads)
+            else:
+                st.error(f"В данных отсутствует колонка геометрии '{geom_col}' для построения буфера.")
+                return df
+            
+        # Создаем копию, чтобы не менять оригинальный DataFrame
+        df_copy = df.copy()
+
+        # Используем параметризованный запрос для безопасности
+        # ST_Buffer работает с единицами проекции. Для метров нужна метрическая проекция (например, 3857).
+        # 1. Трансформируем исходную геометрию в метрическую проекцию (SRID 3857).
+        # 2. Строим буфер с заданным радиусом в метрах.
+        # 3. Трансформируем результат обратно в WGS 84 (SRID 4326).
+        # 4. Конвертируем геометрию буфера в формат GeoJSON для Folium.
+        
+        # Собираем WKT геометрии для передачи в запрос
+        # Если geom_col это 'geometry_wkt', то там уже строки, иначе - объекты shapely
+        if geom_col == 'geometry_wkt':
+            wkt_geometries = df_copy[geom_col]
+        else:
+            wkt_geometries = df_copy[geom_col].apply(lambda geom: geom.wkt)
+        
+        # Формируем SQL-запрос для вычисления буферов
+        # Мы используем VALUES для передачи набора WKT и их ID в одном запросе
+        values_clause = ", ".join([f"({i}, ST_GeomFromText('{wkt}', 4326))" for i, wkt in enumerate(wkt_geometries)])
+        
+        if not values_clause:
+            return df_copy # Возвращаем копию без изменений, если нет геометрии
+
+        query = f"""
+        WITH data (id, geom) AS (
+            VALUES {values_clause}
+        )
+        SELECT 
+            id,
+            ST_AsGeoJSON(
+                ST_Transform(
+                    ST_Buffer(
+                        ST_Transform(geom, 3857), 
+                        {radius}
+                    ), 
+                    4326
+                )
+            ) as buffer_geojson
+        FROM data
+        ORDER BY id;
+        """
+        
+        try:
+            buffered_geometries = query_to_df(query)
+            if buffered_geometries is not None and not buffered_geometries.empty:
+                # Соединяем результат с исходным DataFrame
+                # Устанавливаем индекс для корректного merge
+                df_copy.reset_index(drop=True, inplace=True)
+                buffered_geometries.set_index('id', inplace=True)
+                df_copy = df_copy.join(buffered_geometries)
+            else:
+                df_copy['buffer_geojson'] = None
+        except Exception as e:
+            st.error(f"Ошибка при построении буферных зон: {e}")
+            df_copy['buffer_geojson'] = None
+
+        return df_copy
+
     def detect_geometry_type(self, df):
         """Определяет тип геометрии (Point, Polygon, etc.)"""
         if 'geometry_wkt' not in df.columns or df.empty:

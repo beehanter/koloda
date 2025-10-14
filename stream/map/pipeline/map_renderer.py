@@ -3,7 +3,7 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 import pandas as pd
-from stream.map.styles import MARKER_STYLES, BASE_LAYERS
+from stream.map.styles import MARKER_STYLES, BASE_LAYERS, MAP_DIMENSIONS
 
 class MapRenderer:
     def render(self, filtered_data, map_settings):
@@ -61,11 +61,34 @@ class MapRenderer:
                         fill_color=style.get("fill_color", "gray"),
                         fill_opacity=style.get("fill_opacity", 0.7)
                     ).add_to(feature_group)
+
+                    # Отрисовка буферной зоны, если она есть
+                    if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
+                        import json
+                        try:
+                            geojson_data = json.loads(row['buffer_geojson'])
+                            folium.GeoJson(
+                                geojson_data,
+                                style_function=lambda x, style=style: {
+                                    'fillColor': style.get('buffer_fill_color', '#3186cc'),
+                                    'color': style.get('buffer_fill_color', '#3186cc'),
+                                    'weight': 1,
+                                    'fillOpacity': style.get('buffer_fill_opacity', 0.2)
+                                }
+                            ).add_to(feature_group)
+                        except (json.JSONDecodeError, TypeError):
+                            # Игнорируем ошибки, если GeoJSON некорректен
+                            pass
             
             feature_group.add_to(m)
 
         folium.LayerControl(collapsed=False).add_to(m)
-        st_folium(m, width='100%', height=600, returned_objects=[])
+        st_folium(
+            m,
+            width=MAP_DIMENSIONS.get("width", "100%"),
+            height=MAP_DIMENSIONS.get("height", 600),
+            returned_objects=[]
+        )
 
     def _render_data_tables(self, filtered_data):
         """Отображает отфильтрованные данные в виде таблиц."""
