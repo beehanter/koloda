@@ -1,0 +1,30 @@
+services:
+  db:
+    container_name: koloda_db
+    image: localhost/koloda_db:latest
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: bee
+      POSTGRES_PASSWORD: bee
+      POSTGRES_DB: bee
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  app:
+    container_name: koloda_app
+    image: localhost/koloda_app:latest
+    depends_on:
+      - db
+    ports:
+      - "8501:8501"  # Streamlit
+      - "8001:8001"  # Static file server
+    volumes:
+      - ./memento:/app/memento
+      - ./storage:/app/storage
+    env_file:
+      - .env
+    command: ["/app/entrypoint.sh"]
+
+volumes:
+  pg_data:

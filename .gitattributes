@@ -1,0 +1,25 @@
+# Устанавливаем стандартное поведение для всех файлов
+* text=auto
+
+# Явно указываем, что текстовые файлы должны использовать LF
+*.py text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.sh text eol=lf
+
+# Указываем, что bat-файлы должны использовать CRLF для совместимости с Windows
+*.bat text eol=crlf
+
+# Указываем, что бинарные файлы не должны подвергаться преобразованию
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
