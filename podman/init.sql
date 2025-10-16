@@ -1,3 +1,7 @@
+-- Удаляем расширения, если они существуют, для чистого перезапуска
+DROP EXTENSION IF EXISTS postgis CASCADE;
+DROP EXTENSION IF EXISTS pg_trgm CASCADE;
+
 -- Включаем необходимые расширения
 CREATE EXTENSION IF NOT EXISTS postgis; -- Для работы с геоданными (координаты)
 CREATE EXTENSION IF NOT EXISTS pg_trgm; -- Для эффективного текстового поиска (пока не используется, но полезно на будущее)
@@ -15,7 +19,7 @@ CREATE TABLE beekeepers (
     name VARCHAR(255),                 -- Полное имя пчеловода
     contact VARCHAR(20),               -- Контактный телефон
     adres VARCHAR(255),                -- Адрес проживания
-    row_hash VARCHAR(64) UNIQUE        -- Хеш строки для отслеживания изменений
+    row_hash VARCHAR(64) NOT NULL UNIQUE -- Хеш строки для отслеживания изменений
 );
 
 -- 2. Таблица колод (основная сущность)
@@ -24,7 +28,7 @@ CREATE TABLE koloda (
     region VARCHAR(10) NOT NULL,       -- Код региона
     place VARCHAR(255) NOT NULL,       -- Название места (пасеки)
     date TIMESTAMP,                    -- Дата создания записи о колоде
-    beekeeper VARCHAR(10) NOT NULL REFERENCES beekeepers(beekeeper), -- Внешний ключ к таблице пчеловодов
+    beekeeper VARCHAR(10) NOT NULL REFERENCES beekeepers(beekeeper) ON DELETE CASCADE, -- Внешний ключ к таблице пчеловодов
     tree VARCHAR(255),                 -- Порода дерева, из которого сделана колода
     material VARCHAR(255),             -- Материал (если не дерево)
     tipe VARCHAR(255),                 -- Тип колоды (естественное дупло, искусственная)
@@ -37,7 +41,7 @@ CREATE TABLE koloda (
     pro_foto TEXT,                     -- Описание фотографии
     info TEXT,                         -- Дополнительная информация
     coordinates GEOMETRY(Point, 4326), -- Географические координаты (точка в системе WGS 84)
-    row_hash VARCHAR(64),              -- Хеш строки для отслеживания изменений
+    row_hash VARCHAR(64) NOT NULL,     -- Хеш строки для отслеживания изменений
     PRIMARY KEY (koloda_id, region, place, beekeeper) -- Составной первичный ключ для уникальности колоды
 );
 
@@ -56,14 +60,14 @@ CREATE TABLE osmotr (
     info TEXT,                         -- Дополнительная информация об осмотре
     plan TEXT,                         -- План дальнейших работ
     date_plan DATE,                    -- Дата планируемых работ
-    row_hash VARCHAR(64),              -- Хеш строки для отслеживания изменений
+    row_hash VARCHAR(64) NOT NULL,     -- Хеш строки для отслеживания изменений
     PRIMARY KEY (date, koloda_id, region_id, place_id, beekeeper_id), -- Составной ключ для уникальности осмотра
-    FOREIGN KEY (koloda_id, region_id, place_id, beekeeper_id) REFERENCES koloda(koloda_id, region, place, beekeeper) -- Связь с таблицей колод
+    FOREIGN KEY (koloda_id, region_id, place_id, beekeeper_id) REFERENCES koloda(koloda_id, region, place, beekeeper) ON DELETE CASCADE -- Связь с таблицей колод
 );
 
 -- 4. Таблица пасек
 CREATE TABLE paseki (
-    beekeeper VARCHAR(10) NOT NULL REFERENCES beekeepers(beekeeper), -- Идентификатор пчеловода (часть ключа)
+    beekeeper VARCHAR(10) NOT NULL REFERENCES beekeepers(beekeeper) ON DELETE CASCADE, -- Идентификатор пчеловода (часть ключа)
     adres VARCHAR(255) NOT NULL,       -- Адрес пасеки (часть ключа)
     date TIMESTAMP,                    -- Дата создания записи
     place VARCHAR(255),                -- Название места (дублирует `koloda.place` для удобства)
@@ -74,7 +78,7 @@ CREATE TABLE paseki (
     poroda VARCHAR(255),               -- Основная порода пчел на пасеке
     data_poroda VARCHAR(512),          -- Ссылка на документ с данными о породе (Яндекс.Диск)
     foto VARCHAR(512),                 -- Фотография пасеки
-    row_hash VARCHAR(64),              -- Хеш строки для отслеживания изменений
+    row_hash VARCHAR(64) NOT NULL,     -- Хеш строки для отслеживания изменений
     PRIMARY KEY (beekeeper, adres)     -- Составной ключ для уникальности пасеки
 );
 
@@ -89,9 +93,9 @@ CREATE TABLE test (
     data_poroda VARCHAR(512),          -- Ссылка на данные о породе
     foto_varroa VARCHAR(512),          -- Фотография, относящаяся к тесту
     varroa_test VARCHAR(50),           -- Результат теста на варроатоз
-    row_hash VARCHAR(64),              -- Хеш строки для отслеживания изменений
+    row_hash VARCHAR(64) NOT NULL,     -- Хеш строки для отслеживания изменений
     PRIMARY KEY (date, koloda_id, region_id, place_id, beekeeper_id), -- Составной ключ для уникальности теста
-    FOREIGN KEY (koloda_id, region_id, place_id, beekeeper_id) REFERENCES koloda(koloda_id, region, place, beekeeper) -- Связь с таблицей колод
+    FOREIGN KEY (koloda_id, region_id, place_id, beekeeper_id) REFERENCES koloda(koloda_id, region, place, beekeeper) ON DELETE CASCADE -- Связь с таблицей колод
 );
 
 -- Индексы для ускорения выборок по внешним ключам и часто используемым полям
@@ -99,3 +103,5 @@ CREATE INDEX idx_koloda_beekeeper ON koloda(beekeeper);
 CREATE INDEX idx_osmotr_keys ON osmotr(koloda_id, region_id, place_id, beekeeper_id);
 CREATE INDEX idx_test_keys ON test(koloda_id, region_id, place_id, beekeeper_id);
 CREATE INDEX idx_paseki_beekeeper ON paseki(beekeeper);
+CREATE INDEX idx_osmotr_date ON osmotr(date);
+CREATE INDEX idx_test_date ON test(date);

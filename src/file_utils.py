@@ -7,6 +7,7 @@
 import os
 import shutil
 from pathlib import Path
+import logging
 
 def find_media_files(source_dir: Path, extensions: list[str] = None) -> list[Path]:
     """
@@ -51,8 +52,22 @@ def copy_file_to_storage(source_path: Path, memento_dir: Path, storage_dir: Path
     # Создаем родительские директории, если их нет
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Копируем файл, только если его еще нет
-    if not destination_path.exists():
-        shutil.copy2(source_path, destination_path)
-        
+    # Копируем, если файл не существует или его размер отличается
+    copy = True
+    if destination_path.exists():
+        try:
+            if destination_path.stat().st_size == source_path.stat().st_size:
+                copy = False
+        except FileNotFoundError:
+            # Файл мог быть удален между проверкой exists() и stat()
+            pass
+
+    if copy:
+        try:
+            shutil.copy2(source_path, destination_path)
+            logging.getLogger('my_app').info(f"Скопирован файл: {source_path} -> {destination_path}")
+        except OSError as e:
+            logging.getLogger('my_app').error(f"Ошибка копирования файла {source_path} в {destination_path}: {e}")
+            return None
+            
     return destination_path

@@ -4,6 +4,9 @@ FROM python:3.13-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Install PostgreSQL client for pg_isready
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+
 # Install uv
 RUN pip install uv
 
@@ -11,7 +14,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv
-RUN uv pip install --system --no-cache -r pyproject.toml
+RUN uv pip install --system --no-cache .
 
 # Copy the rest of the application's source code from the host to the container
 COPY . .

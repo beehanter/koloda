@@ -6,6 +6,7 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
+import logging
 
 def calculate_file_hash(file_path: Path) -> str:
     """Вычисляет SHA-256 хеш файла."""
@@ -38,10 +39,19 @@ class StateManager:
         return {}
 
     def save_state(self):
-        """Сохраняет текущее состояние в JSON-файл."""
+        """Атомарно сохраняет текущее состояние в JSON-файл."""
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.state_file, 'w', encoding='utf-8') as f:
-            json.dump(self.state, f, indent=4)
+        temp_path = self.state_file.with_suffix('.tmp')
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                json.dump(self.state, f, indent=4)
+            # Атомарное переименование
+            temp_path.replace(self.state_file)
+        except Exception as e:
+            logging.error(f"Не удалось сохранить файл состояния: {e}")
+            # Попытка удалить временный файл, если он остался
+            if temp_path.exists():
+                temp_path.unlink()
 
     def has_changed(self, file_path: Path) -> bool:
         """
@@ -54,15 +64,19 @@ class StateManager:
         last_state = self.state.get(file_id)
 
         if not last_state:
-            return True  # Файл новый
+            logging.info(f"Обнаружен новый файл: {file_path}")
+            return True
 
         current_mtime = file_path.stat().st_mtime
         if current_mtime != last_state.get("mtime"):
-            # Если время модификации отличается, проверяем хеш,
-            # чтобы избежать ложных срабатываний (например, `touch` без изменений).
+            logging.info(f"Время модификации файла {file_path} изменилось. Проверяем хеш...")
             current_hash = calculate_file_hash(file_path)
             if current_hash != last_state.get("hash"):
+                logging.info(f"Хеш файла {file_path} изменился. Файл будет обработан.")
                 return True
+            else:
+                logging.info(f"Хеш файла {file_path} не изменился. Обновляем только время модификации.")
+                self.update_state(file_path) # Обновляем mtime, чтобы не проверять хеш в следующий раз
         
         return False
 

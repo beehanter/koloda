@@ -4,19 +4,19 @@
 set -e
 
 # Wait for the database to be ready
-echo "Waiting for DB to be ready..."
-sleep 10
+echo "Waiting for PostgreSQL to be ready..."
+# Используем pg_isready для проверки доступности базы данных.
+# 'db' - это имя сервиса из docker-compose.yml.
+until pg_isready -h db -U bee -d bee; do
+  echo "Waiting for PostgreSQL..."
+  sleep 2
+done
+echo "PostgreSQL is ready."
 
 # Run the data processing script
 echo "Running data processing..."
 python main.py
 echo "Data processing finished."
-
-# Check if the first argument is 'update'
-if [ "$1" = "update" ]; then
-  echo "Update command detected. Exiting without starting servers."
-  exit 0
-fi
 
 # Start the static file server in the background
 echo "Starting static file server in background..."

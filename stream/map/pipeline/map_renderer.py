@@ -1,6 +1,7 @@
 # stream/map/pipeline/map_renderer.py
 import streamlit as st
 import folium
+from folium.plugins import MeasureControl, Draw, TimestampedGeoJson
 from streamlit_folium import st_folium
 import pandas as pd
 from stream.map.styles import MARKER_STYLES, BASE_LAYERS, MAP_DIMENSIONS
@@ -46,43 +47,62 @@ class MapRenderer:
             if df is None or df.empty:
                 continue
 
-            feature_group = folium.FeatureGroup(name=table_name, show=True)
             style = MARKER_STYLES.get(table_name, MARKER_STYLES["default"])
 
-            for _, row in df.iterrows():
-                if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
-                    popup_html = self._create_popup_html(row)
-                    folium.CircleMarker(
-                        location=[row['latitude'], row['longitude']],
-                        radius=style.get("radius", 5),
-                        popup=folium.Popup(popup_html, max_width=400),
-                        color=style.get("color", "gray"),
-                        fill=True,
-                        fill_color=style.get("fill_color", "gray"),
-                        fill_opacity=style.get("fill_opacity", 0.7)
-                    ).add_to(feature_group)
+            # Проверяем, есть ли поле с датой для временной визуализации
+            if 'date' in df.columns and pd.to_datetime(df['date'], errors='coerce').notna().any():
+                features = self._create_geojson_features(df, style)
+                TimestampedGeoJson(
+                    {'type': 'FeatureCollection', 'features': features},
+                    period='P1D', # Период - 1 день
+                    add_last_point=True,
+                    auto_play=False,
+                    loop=False,
+                    max_speed=10,
+                    loop_button=True,
+                    date_options='YYYY-MM-DD',
+                    time_slider_drag_update=True
+                ).add_to(m)
+            else:
+                # Если поля date нет, используем обычные маркеры
+                feature_group = folium.FeatureGroup(name=table_name, show=True)
+                for _, row in df.iterrows():
+                    if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
+                        popup_html = self._create_popup_html(row)
+                        folium.CircleMarker(
+                            location=[row['latitude'], row['longitude']],
+                            radius=style.get("radius", 5),
+                            popup=folium.Popup(popup_html, max_width=400),
+                            color=style.get("color", "gray"),
+                            fill=True,
+                            fill_color=style.get("fill_color", "gray"),
+                            fill_opacity=style.get("fill_opacity", 0.7)
+                        ).add_to(feature_group)
 
-                    # Отрисовка буферной зоны, если она есть
-                    if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
-                        import json
-                        try:
-                            geojson_data = json.loads(row['buffer_geojson'])
-                            folium.GeoJson(
-                                geojson_data,
-                                style_function=lambda x, style=style: {
-                                    'fillColor': style.get('buffer_fill_color', '#3186cc'),
-                                    'color': style.get('buffer_fill_color', '#3186cc'),
-                                    'weight': 1,
-                                    'fillOpacity': style.get('buffer_fill_opacity', 0.2)
-                                }
-                            ).add_to(feature_group)
-                        except (json.JSONDecodeError, TypeError):
-                            # Игнорируем ошибки, если GeoJSON некорректен
-                            pass
-            
-            feature_group.add_to(m)
+                        # Отрисовка буферной зоны
+                        if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
+                            import json
+                            try:
+                                geojson_data = json.loads(row['buffer_geojson'])
+                                folium.GeoJson(
+                                    geojson_data,
+                                    style_function=lambda x, s=style: {
+                                        'fillColor': s.get('buffer_fill_color', '#3186cc'),
+                                        'color': s.get('buffer_fill_color', '#3186cc'),
+                                        'weight': 1,
+                                        'fillOpacity': s.get('buffer_fill_opacity', 0.2)
+                                    }
+                                ).add_to(feature_group)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                feature_group.add_to(m)
 
         folium.LayerControl(collapsed=False).add_to(m)
+
+        # Добавляем инструменты измерения и рисования
+        m.add_child(MeasureControl(primary_length_unit='meters'))
+        m.add_child(Draw(export=True))
+
         st_folium(
             m,
             width=MAP_DIMENSIONS.get("width", "100%"),
@@ -131,11 +151,66 @@ class MapRenderer:
         return center_lat, center_lon, zoom
 
     def _create_popup_html(self, row):
-        """Создает HTML для всплывающего окна маркера."""
-        html = "<div style='font-family: monospace; font-size: 12px;'>"
+        """Создает HTML для всплывающего окна маркера, включая изображения."""
+        from urllib.parse import quote
+        STATIC_SERVER_URL = "http://localhost:8001"
+
+        def prepare_url(path):
+            if not path or not isinstance(path, str):
+                return None
+            clean_path = path.replace("\\", "/").lstrip("/")
+            if clean_path.startswith("storage/"):
+                clean_path = clean_path[len("storage/"):]
+            return f"{STATIC_SERVER_URL}/{quote(clean_path)}"
+
+        html = "<div style='font-family: monospace; font-size: 12px; max-width: 350px;'>"
         html += f"<h5><b>{row.get('name', 'Объект')}</b></h5><hr style='margin: 2px 0;'>"
+        
+        # Сначала добавляем все текстовые поля
         for col, value in row.items():
+            if col.lower().startswith("foto"):
+                continue # Пропускаем фото, обработаем их отдельно
             if col.lower() not in ['geometry', 'geometry_wkt', 'latitude', 'longitude', 'coordinates', 'name'] and pd.notna(value):
                 html += f"<b>{col}:</b> {value}<br>"
+        
+        # Затем добавляем изображения
+        for col, value in row.items():
+            if col.lower().startswith("foto") and pd.notna(value):
+                img_url = prepare_url(value)
+                if img_url:
+                    html += f"<hr style='margin: 5px 0;'><b style='display: block; margin-bottom: 5px;'>{col}:</b>"
+                    html += f"<img src='{img_url}' alt='{col}' style='width:100%; max-height: 250px; object-fit: cover; border-radius: 4px;'>"
+
         html += "</div>"
         return html
+
+    def _create_geojson_features(self, df, style):
+        """Создает список GeoJSON-объектов для TimestampedGeoJson."""
+        features = []
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values(by='date')
+
+        for _, row in df.iterrows():
+            if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
+                feature = {
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [row['longitude'], row['latitude']]
+                    },
+                    'properties': {
+                        'time': row['date'].isoformat(),
+                        'popup': self._create_popup_html(row),
+                        'icon': 'circle',
+                        'iconstyle': {
+                            'fillColor': style.get('fill_color', 'grey'),
+                            'fillOpacity': 0.8,
+                            'stroke': 'true',
+                            'color': style.get('color', 'black'),
+                            'weight': 2,
+                            'radius': style.get('radius', 5)
+                        }
+                    }
+                }
+                features.append(feature)
+        return features

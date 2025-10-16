@@ -28,11 +28,15 @@ def transform_photo_path(original_path: str, csv_file_path: Path, memento_dir: P
     # Например, фото для `memento/gse/koloda/koloda.csv` лежит в `memento/gse/koloda/`
     photo_path_in_memento = csv_file_path.parent / file_name
 
+    if not photo_path_in_memento.exists():
+        logging.warning(f"Файл фото не найден по пути: {photo_path_in_memento}")
+        return None
+
     # Вычисляем относительный путь от корня `memento`
     relative_path = photo_path_in_memento.relative_to(memento_dir)
 
     # Возвращаем путь в виде строки для записи в БД
-    return str(storage_dir / relative_path)
+    return str(relative_path)
 
 
 def parse_composite_key(key_string: str) -> tuple | None:
@@ -65,9 +69,12 @@ def transform_coordinates(coord_string: str) -> str | None:
         return None
     
     try:
-        lat, lon = map(str.strip, coord_string.split(','))
+        lat_str, lon_str = map(str.strip, coord_string.split(','))
+        # Проверяем, что координаты являются числами
+        lat, lon = float(lat_str), float(lon_str)
         return f"POINT({lon} {lat})"
     except (ValueError, IndexError):
+        logging.warning(f"Некорректные координаты: '{coord_string}'")
         return None
 
 def generate_row_hash(row: pd.Series) -> str:
@@ -79,6 +86,7 @@ def generate_row_hash(row: pd.Series) -> str:
     :return: 64-символьный hex-хеш.
     """
     # Собираем все значения строки в одну строку, заменяя NaN на пустую строку
-    combined_string = "".join(str(v) for v in row.fillna('').values)
+    # Собираем все значения строки в одну строку, заменяя NaN на пустую строку
+    combined_string = "".join("" if pd.isna(v) else str(v) for v in row.values)
     
     return hashlib.sha256(combined_string.encode('utf-8')).hexdigest()

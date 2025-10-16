@@ -18,8 +18,36 @@ MEMENTO_DIR = Path("memento")
 STORAGE_DIR = Path("storage")
 STATE_FILE = STORAGE_DIR / "processing_state.json"
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# --- Настройка логирования ---
+
+def setup_logging():
+    """Настраивает логирование в файл и в консоль."""
+    log_dir = Path("storage")
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "app.log"
+
+    logger = logging.getLogger('my_app')
+    logger.setLevel(logging.INFO)
+
+    # Предотвращаем двойное добавление обработчиков
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # Обработчик для записи в файл
+    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.INFO)
+
+    # Обработчик для вывода в консоль
+    console_handler = logging.StreamHandler()
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+    console_handler.setLevel(logging.INFO)
+
+    # Добавляем обработчики к нашему логгеру
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
 # --- Вспомогательная функция для конвертации типов ---
 
@@ -75,7 +103,7 @@ def process_paseki(df: pd.DataFrame, db: DBManager, csv_path: Path):
     df['row_hash'] = df.apply(generate_row_hash, axis=1)
     original_non_numeric = df.loc[pd.to_numeric(df['many_bees'], errors='coerce').isna() & df['many_bees'].notna(), 'many_bees']
     if not original_non_numeric.empty:
-        logging.warning(f"В файле {csv_path.name} в колонке 'many_bees' найдены нечисловые значения, которые будут заменены на NULL: {original_non_numeric.tolist()}")
+        logging.getLogger('my_app').warning(f"В файле {csv_path.name} в колонке 'many_bees' найдены нечисловые значения, которые будут заменены на NULL: {original_non_numeric.tolist()}")
     df['many_bees'] = pd.to_numeric(df['many_bees'], errors='coerce')
     
     db_cols = ["beekeeper", "adres", "date", "place", "coordinates", "date_start",
@@ -114,7 +142,7 @@ def dispatch_processor(file_path: Path, df: pd.DataFrame, db: DBManager):
     processor = processors.get(file_path.name)
     
     if not processor:
-        logging.warning(f"Не найден обработчик для файла {file_path.name}. Пропускаем.")
+        logging.getLogger('my_app').warning(f"Не найден обработчик для файла {file_path.name}. Пропускаем.")
         return
 
     if file_path.name == 'beekeepers.csv':
@@ -128,7 +156,7 @@ def process_csv_file(file_path: Path, db: DBManager, state: StateManager):
     if not state.has_changed(file_path):
         return
 
-    logging.info(f"Обнаружены изменения в {file_path}. Начинаем обработку...")
+    logging.getLogger('my_app').info(f"Обнаружены изменения в {file_path}. Начинаем обработку...")
     
     db.begin()
     try:
@@ -138,17 +166,17 @@ def process_csv_file(file_path: Path, db: DBManager, state: StateManager):
         
         db.commit()
         state.update_state(file_path)
-        logging.info(f"Файл {file_path} успешно обработан и закоммичен.")
+        logging.getLogger('my_app').info(f"Файл {file_path} успешно обработан и закоммичен.")
     except Exception as e:
         db.rollback()
-        logging.error(f"Ошибка при обработке файла {file_path}. Транзакция отменена. Ошибка: {e}", exc_info=True)
+        logging.getLogger('my_app').error(f"Ошибка при обработке файла {file_path}. Транзакция отменена. Ошибка: {e}", exc_info=True)
 
 
 def sync_media_files():
-    logging.info("Начинаем синхронизацию медиафайлов...")
+    logging.getLogger('my_app').info("Начинаем синхронизацию медиафайлов...")
     media_files = find_media_files(MEMENTO_DIR)
     if not media_files:
-        logging.info("Новых медиафайлов не найдено.")
+        logging.getLogger('my_app').info("Новых медиафайлов не найдено.")
         return
         
     copied_count = 0
@@ -159,11 +187,12 @@ def sync_media_files():
             copy_file_to_storage(file, MEMENTO_DIR, STORAGE_DIR)
             copied_count += 1
             
-    logging.info(f"Синхронизация медиафайлов завершена. Скопировано новых файлов: {copied_count}.")
+    logging.getLogger('my_app').info(f"Синхронизация медиафайлов завершена. Скопировано новых файлов: {copied_count}.")
 
 
 def main():
-    logging.info("--- Запуск приложения синхронизации ---")
+    setup_logging()
+    logging.getLogger('my_app').info("--- Запуск приложения синхронизации ---")
     state_manager = StateManager(STATE_FILE)
     sync_media_files()
 
@@ -177,12 +206,12 @@ def main():
             for csv_file in sorted_csv_files:
                 process_csv_file(csv_file, db_manager, state_manager)
     except Exception as e:
-        logging.critical(f"Критическая ошибка работы приложения: {e}", exc_info=True)
+        logging.getLogger('my_app').critical(f"Критическая ошибка работы приложения: {e}", exc_info=True)
     finally:
         state_manager.save_state()
-        logging.info("Состояние обработки файлов сохранено.")
+        logging.getLogger('my_app').info("Состояние обработки файлов сохранено.")
     
-    logging.info("--- Работа приложения завершена ---")
+    logging.getLogger('my_app').info("--- Работа приложения завершена ---")
 
 
 if __name__ == "__main__":

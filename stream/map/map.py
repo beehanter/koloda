@@ -1,6 +1,6 @@
 import streamlit as st
 from stream.map.pipeline.table_selector import TableSelector
-from stream.map.pipeline.filter_stage import FilterStage
+from stream.table.pipeline.filter_stage import FilterStage
 from stream.map.pipeline.map_config import MapConfig
 from stream.map.pipeline.map_renderer import MapRenderer
 from stream.map.utils.geo_utils import PostGISProcessor
@@ -43,7 +43,8 @@ def show():
     
     # 3. Применение фильтров
     with st.sidebar:
-        filtered_data = filter_stage.render_ui(data_sources)
+        filter_stage.render_ui(data_sources)
+        filtered_data = filter_stage.transform(data_sources)
     
     # 4. Настройка карты
     with st.sidebar:

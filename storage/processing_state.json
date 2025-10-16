@@ -1,0 +1,27 @@
+{
+    "memento/gse/beekeepers/beekeepers.csv": {
+        "mtime": 1760527761.0,
+        "hash": "f4a639f35ebc95ac2777da83a5ca4d611304e0a990df6bcc0e7092393c53e108",
+        "processed_at": "2025-10-16T18:47:09.682906+00:00"
+    },
+    "memento/gse/koloda/koloda.csv": {
+        "mtime": 1760527761.0,
+        "hash": "0741b2cbc38df2069c7a316fae472541a94e243f1d3a089bd86a97549577deeb",
+        "processed_at": "2025-10-16T18:47:11.850904+00:00"
+    },
+    "memento/gse/osmotr/osmotr.csv": {
+        "mtime": 1760527761.0,
+        "hash": "c9fe144537ed7d9bc21fdf8c50c74ed29c09386bcfd7d528323132642daa65cc",
+        "processed_at": "2025-10-16T18:47:12.390150+00:00"
+    },
+    "memento/gse/paseki/paseki.csv": {
+        "mtime": 1760527761.0,
+        "hash": "37a7b04aa7b7eef3ce33b5b8f531ffc594731307befe47a0ba35aeaeb7544c7e",
+        "processed_at": "2025-10-16T18:47:12.449505+00:00"
+    },
+    "memento/gse/test/test.csv": {
+        "mtime": 1760527761.0,
+        "hash": "a021e7b2ea78b15f6f2813cdc5e02767a26e80e0314a791665a03bbafb839753",
+        "processed_at": "2025-10-16T18:47:12.622228+00:00"
+    }
+}

@@ -24,8 +24,12 @@ st.session_state['selected_table'] = selected_table
 
 # 2. Загрузка данных
 try:
-    df_original = query_to_df(f'SELECT * FROM "{selected_table}"')
-    
+    # Оборачиваем загрузку данных в st.cache_data для производительности
+    @st.cache_data
+    def load_data(table_name):
+        return query_to_df(f'SELECT * FROM "{table_name}"')
+
+    df_original = load_data(selected_table)
     df_current = df_original.copy()
     st.sidebar.divider()
 except Exception as e:
