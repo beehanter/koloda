@@ -24,4 +24,5 @@ dependencies = [
     "ollama>=0.6.0",
     "folium>=0.20.0",
     "streamlit-folium>=0.25.3",
+    "pyscn>=1.2.2",
 ]

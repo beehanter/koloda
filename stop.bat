@@ -2,12 +2,12 @@
 ECHO "Stopping all application processes..."
 
 ECHO "Stopping and removing Podman containers..."
-podman-compose down
+uv run python -m podman_compose down
+timeout /t 5 >nul
 
-ECHO "Stopping Python and Streamlit processes..."
-taskkill /IM streamlit.exe /F
-taskkill /IM python.exe /F /FI "WINDOWTITLE eq DataProcessing"
-taskkill /IM python.exe /F /FI "WINDOWTITLE eq StaticServer"
+ECHO "Stopping service windows..."
+:: Используем PowerShell для поиска и завершения процессов по заголовку окна
+powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -match 'DataProcessing|StaticServer|StreamlitApp' } | Stop-Process -Force"
 
 ECHO "All processes have been terminated."
 pause

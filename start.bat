@@ -2,16 +2,19 @@
 ECHO "Starting the application..."
 
 ECHO "Starting Podman containers for the database..."
-start "Podman" cmd /c "podman-compose up"
-
+start "Podman" cmd /c "uv run python -m podman_compose up"
 ECHO "Waiting for the database to be ready..."
 timeout /t 10
 
-ECHO "Running the data processing script (main.py)..."
-start "DataProcessing" cmd /c "uv run python main.py"
+ECHO "Starting services in new windows..."
 
-ECHO "Starting the static file server (serve_static.py)..."
-start "StaticServer" cmd /c "uv run python src/serve_static.py"
+ECHO " - Starting DataProcessing (main.py)..."
+start "DataProcessing" cmd /c "title DataProcessing && uv run python main.py"
 
-ECHO "Starting the Streamlit application..."
-uv run streamlit run stream/app.py
+ECHO " - Starting Static File Server (serve_static.py)..."
+start "StaticServer" cmd /c "title StaticServer && uv run python src/serve_static.py"
+
+ECHO " - Starting Streamlit..."
+start "StreamlitApp" cmd /c "title StreamlitApp && uv run python -m streamlit run stream/app.py"
+
+ECHO "All services launched in separate windows."

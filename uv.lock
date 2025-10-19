@@ -1020,6 +1020,7 @@ dependencies = [
     { name = "podman" },
     { name = "podman-compose" },
     { name = "psycopg2-binary" },
+    { name = "pyscn" },
     { name = "pytest" },
     { name = "python-dateutil" },
     { name = "python-dotenv" },
@@ -1043,6 +1044,7 @@ requires-dist = [
     { name = "podman", specifier = ">=5.6.0" },
     { name = "podman-compose", specifier = ">=1.5.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "pyscn", specifier = ">=1.2.2" },
     { name = "pytest", specifier = ">=8.3.2" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "python-dotenv", specifier = ">=0.21.0" },
@@ -1761,6 +1763,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/8b/a3f0618b03957de9db5489a04558a8826f43906628bb0b766033aa3b5548/pyproj-3.7.2-cp314-cp314t-win32.whl", hash = "sha256:c9b6f1d8ad3e80a0ee0903a778b6ece7dca1d1d40f6d114ae01bc8ddbad971aa", size = 6056848 },
     { url = "https://files.pythonhosted.org/packages/bc/56/413240dd5149dd3291eda55aa55a659da4431244a2fd1319d0ae89407cfb/pyproj-3.7.2-cp314-cp314t-win_amd64.whl", hash = "sha256:1914e29e27933ba6f9822663ee0600f169014a2859f851c054c88cf5ea8a333c", size = 6517676 },
     { url = "https://files.pythonhosted.org/packages/15/73/a7141a1a0559bf1a7aa42a11c879ceb19f02f5c6c371c6d57fd86cefd4d1/pyproj-3.7.2-cp314-cp314t-win_arm64.whl", hash = "sha256:d9d25bae416a24397e0d85739f84d323b55f6511e45a522dd7d7eae70d10c7e4", size = 6391844 },
+]
+
+[[package]]
+name = "pyscn"
+version = "1.2.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/61/66a427ee3f16d433fda901a5aef6f1a30692a800e064d5956fd0e079eac7/pyscn-1.2.2-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:507750e2fd49b4cc6737ff6e13d824d54e68a419923c54ef44b835c291cc40c1", size = 7668754 },
+    { url = "https://files.pythonhosted.org/packages/fe/95/848364e7883f360c9bb814e0bf7a2935992283bb686ff634a9fa954a3584/pyscn-1.2.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:29f7850cc5f88a7464eb8f0c862c0f7bf58e31b32b2464345b6da6e7fa44d4d2", size = 7155672 },
+    { url = "https://files.pythonhosted.org/packages/95/04/54e5a259c7160c800b565e73800da30d13bb4bb0e4bb57f4dcfbe1f82da8/pyscn-1.2.2-py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:7ac3f18e46ee2f01d50bd873ff893182b5c0c36e98e2f2d2561bf490c804e3bc", size = 7683331 },
+    { url = "https://files.pythonhosted.org/packages/a6/ae/e088db6047e19f805ac2d1fad3f2fd51cd4f673f7659ff1df30a9cb34c54/pyscn-1.2.2-py3-none-win_amd64.whl", hash = "sha256:f9a794d4bda0efc859e3400bddca0b7764ee20b8b686d0e83573a6c850c57ca2", size = 7994311 },
 ]
 
 [[package]]
