@@ -86,68 +86,64 @@ class RelatedDataStage(PipelineStage):
         
         return False
 
+    def _query_and_display_related(self, title: str, target_table: str, key_mapping: list, selected_row: pd.Series) -> bool:
+        """
+        Универсальный метод для запроса и отображения связанных данных.
+        
+        :param title: Заголовок для отображения в UI.
+        :param target_table: Таблица, к которой выполняется запрос.
+        :param key_mapping: Список кортежей с сопоставлением ключей (source_col, target_col).
+        :param selected_row: Выбранная строка для поиска связей.
+        :return: True, если данные были найдены и отображены.
+        """
+        where_clauses, params, all_keys_present = [], [], True
+        for source_col, target_col in key_mapping:
+            if source_col in selected_row and pd.notna(selected_row[source_col]):
+                where_clauses.append(f'"{target_col}" = %s')
+                params.append(selected_row[source_col])
+            else:
+                all_keys_present = False
+                break
+        
+        if all_keys_present and where_clauses:
+            query = f'SELECT * FROM "{target_table}" WHERE {" AND ".join(where_clauses)}'
+            with st.spinner(f"Загружаем данные из '{target_table}'..."):
+                try:
+                    related_df = query_to_df(query, tuple(params))
+                    if not related_df.empty:
+                        st.write(f"**{title}: `{target_table}`**")
+                        st.dataframe(related_df, use_container_width=True)
+                        return True
+                except Exception as e:
+                    st.error(f"Ошибка при запросе к таблице {target_table}: {e}")
+        return False
+
     def show_related_data_for_row(self, selected_row: pd.Series):
         st.subheader(self.name)
         st.write(f"**Анализ для записи из таблицы `{st.session_state.get('selected_table', '...')}`:**")
         st.write(pd.DataFrame([selected_row]))
-        st.write("---")
+        st.divider()
         st.write("**Найденные связанные данные:**")
         
         references_to, referenced_by = get_db_schema_relations()
         current_table = st.session_state.get('selected_table')
         found_anything = False
 
-        # А. Ищем, НА КОГО ссылается текущая таблица
+        # А. Ищем, НА КОГО ссылается текущая таблица (родительские записи)
         if current_table in references_to:
             st.write("#### ⬆️ Записи, на которые ссылается эта строка:")
             for fk_cols, ref_table, ref_cols in references_to[current_table]:
-                where_clauses, params, all_keys_present = [], [], True
-                for fk_col, ref_col in zip(fk_cols, ref_cols):
-                    if fk_col in selected_row and pd.notna(selected_row[fk_col]):
-                        where_clauses.append(f'"{ref_col}" = %s')
-                        params.append(selected_row[fk_col])
-                    else:
-                        all_keys_present = False
-                        break
-                
-                if all_keys_present and where_clauses:
-                    query = f'SELECT * FROM "{ref_table}" WHERE {" AND ".join(where_clauses)}'
-                    
-                    with st.spinner(f"Загружаем родительскую запись из '{ref_table}'..."):
-                        try:
-                            related_df = query_to_df(query, tuple(params))
-                            if not related_df.empty:
-                                found_anything = True
-                                st.write(f"**Родительская таблица: `{ref_table}`**")
-                                st.dataframe(related_df, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Ошибка при запросе к таблице {ref_table}: {e}")
+                key_map = list(zip(fk_cols, ref_cols))
+                if self._query_and_display_related("Родительская таблица", ref_table, key_map, selected_row):
+                    found_anything = True
 
-        # Б. Ищем, КТО ссылается на текущую таблицу
+        # Б. Ищем, КТО ссылается на текущую таблицу (дочерние записи)
         if current_table in referenced_by:
             st.write("#### ⬇️ Записи, которые ссылаются на эту строку:")
             for fk_table, fk_cols, ref_cols in referenced_by[current_table]:
-                where_clauses, params, all_keys_present = [], [], True
-                for ref_col, fk_col in zip(ref_cols, fk_cols):
-                    if ref_col in selected_row and pd.notna(selected_row[ref_col]):
-                        where_clauses.append(f'"{fk_col}" = %s')
-                        params.append(selected_row[ref_col])
-                    else:
-                        all_keys_present = False
-                        break
-                
-                if all_keys_present and where_clauses:
-                    query = f'SELECT * FROM "{fk_table}" WHERE {" AND ".join(where_clauses)}'
-
-                    with st.spinner(f"Ищем дочерние записи в '{fk_table}'..."):
-                        try:
-                            related_df = query_to_df(query, tuple(params))
-                            if not related_df.empty:
-                                found_anything = True
-                                st.write(f"**Дочерняя таблица: `{fk_table}`**")
-                                st.dataframe(related_df, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Ошибка при запросе к таблице {fk_table}: {e}")
+                key_map = list(zip(ref_cols, fk_cols))
+                if self._query_and_display_related("Дочерняя таблица", fk_table, key_map, selected_row):
+                    found_anything = True
 
         if not found_anything:
             st.info("Связанных записей в других таблицах не найдено.")

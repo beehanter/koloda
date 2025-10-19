@@ -23,10 +23,13 @@ if not selected_table:
 st.session_state['selected_table'] = selected_table
 
 # 2. Загрузка данных
-# 2. Загрузка данных
 try:
-    df_original = query_to_df(f'SELECT * FROM "{selected_table}"')
-    
+    # Оборачиваем загрузку данных в st.cache_data для производительности
+    @st.cache_data
+    def load_data(table_name):
+        return query_to_df(f'SELECT * FROM "{table_name}"')
+
+    df_original = load_data(selected_table)
     df_current = df_original.copy()
     st.sidebar.divider()
 except Exception as e:
@@ -55,8 +58,6 @@ for stage in stages:
         stage.show_output(df_current)
 
 # 5. Финальный вывод
-# Финальный вывод показывается, только если ни один из этапов
-# не установил флаг для его скрытия (например, EditStage или PhotoViewerStage)
 if not st.session_state.get('hide_final_dataframe', False):
     st.subheader("Итоговый результат")
     

@@ -84,8 +84,8 @@ class PostGISProcessor:
         """
         if df is None or df.empty or radius <= 0:
             return df
-
-        # Проверяем, есть ли уже столбец с геометрией в DataFrame. 
+ 
+        # Проверяем, есть ли уже столбец с геометрией в DataFrame.
         # Если нет, пытаемся его найти или создать.
         if geom_col not in df.columns:
             # Попробуем найти WKT столбец, если основной отсутствует
@@ -99,7 +99,7 @@ class PostGISProcessor:
             
         # Создаем копию, чтобы не менять оригинальный DataFrame
         df_copy = df.copy()
-
+ 
         # Используем параметризованный запрос для безопасности
         # ST_Buffer работает с единицами проекции. Для метров нужна метрическая проекция (например, 3857).
         # 1. Трансформируем исходную геометрию в метрическую проекцию (SRID 3857).
@@ -120,21 +120,15 @@ class PostGISProcessor:
         
         if not values_clause:
             return df_copy # Возвращаем копию без изменений, если нет геометрии
-
+ 
         query = f"""
         WITH data (id, geom) AS (
             VALUES {values_clause}
         )
-        SELECT 
+        SELECT
             id,
             ST_AsGeoJSON(
-                ST_Transform(
-                    ST_Buffer(
-                        ST_Transform(geom, 3857), 
-                        {radius}
-                    ), 
-                    4326
-                )
+                ST_Buffer(geom::geography, {radius})::geometry
             ) as buffer_geojson
         FROM data
         ORDER BY id;
@@ -153,7 +147,7 @@ class PostGISProcessor:
         except Exception as e:
             st.error(f"Ошибка при построении буферных зон: {e}")
             df_copy['buffer_geojson'] = None
-
+ 
         return df_copy
 
     def detect_geometry_type(self, df):

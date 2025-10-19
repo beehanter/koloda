@@ -1,6 +1,8 @@
 # stream/map/pipeline/map_renderer.py
 import streamlit as st
+import json
 import folium
+from folium.plugins import MeasureControl, Draw, TimestampedGeoJson
 from streamlit_folium import st_folium
 import pandas as pd
 from stream.map.styles import MARKER_STYLES, BASE_LAYERS, MAP_DIMENSIONS
@@ -46,49 +48,141 @@ class MapRenderer:
             if df is None or df.empty:
                 continue
 
-            feature_group = folium.FeatureGroup(name=table_name, show=True)
             style = MARKER_STYLES.get(table_name, MARKER_STYLES["default"])
 
-            for _, row in df.iterrows():
-                if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
-                    popup_html = self._create_popup_html(row)
-                    folium.CircleMarker(
-                        location=[row['latitude'], row['longitude']],
-                        radius=style.get("radius", 5),
-                        popup=folium.Popup(popup_html, max_width=400),
-                        color=style.get("color", "gray"),
-                        fill=True,
-                        fill_color=style.get("fill_color", "gray"),
-                        fill_opacity=style.get("fill_opacity", 0.7)
-                    ).add_to(feature_group)
+            # Проверяем, есть ли поле с датой для временной визуализации
+            if 'date' in df.columns and pd.to_datetime(df['date'], errors='coerce').notna().any():
+                features = self._create_geojson_features(df, style)
+                TimestampedGeoJson(
+                    {'type': 'FeatureCollection', 'features': features},
+                    period='P1D', # Период - 1 день
+                    add_last_point=True,
+                    auto_play=False,
+                    loop=False,
+                    max_speed=10,
+                    loop_button=True,
+                    date_options='YYYY-MM-DD',
+                    time_slider_drag_update=True
+                ).add_to(m)
+            else:
+                # Если поля date нет, используем обычные маркеры
+                feature_group = folium.FeatureGroup(name=table_name, show=True)
+                for _, row in df.iterrows():
+                    if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
+                        popup_html = self._create_popup_html(row)
+                        folium.CircleMarker(
+                            location=[row['latitude'], row['longitude']],
+                            radius=style.get("radius", 5),
+                            popup=folium.Popup(popup_html, max_width=400),
+                            color=style.get("color", "gray"),
+                            fill=True,
+                            fill_color=style.get("fill_color", "gray"),
+                            fill_opacity=style.get("fill_opacity", 0.7)
+                        ).add_to(feature_group)
 
-                    # Отрисовка буферной зоны, если она есть
-                    if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
-                        import json
-                        try:
-                            geojson_data = json.loads(row['buffer_geojson'])
-                            folium.GeoJson(
-                                geojson_data,
-                                style_function=lambda x, style=style: {
-                                    'fillColor': style.get('buffer_fill_color', '#3186cc'),
-                                    'color': style.get('buffer_fill_color', '#3186cc'),
-                                    'weight': 1,
-                                    'fillOpacity': style.get('buffer_fill_opacity', 0.2)
-                                }
-                            ).add_to(feature_group)
-                        except (json.JSONDecodeError, TypeError):
-                            # Игнорируем ошибки, если GeoJSON некорректен
-                            pass
-            
-            feature_group.add_to(m)
+                        # Отрисовка буферной зоны
+                        if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
+                            try:
+                                geojson_data = json.loads(row['buffer_geojson'])
+                                folium.GeoJson(
+                                    geojson_data,
+                                    style_function=lambda x, s=style: {
+                                        'fillColor': s.get('buffer_fill_color', '#3186cc'),
+                                        'color': s.get('buffer_fill_color', '#3186cc'),
+                                        'weight': 1,
+                                        'fillOpacity': s.get('buffer_fill_opacity', 0.2)
+                                    }
+                                ).add_to(feature_group)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                feature_group.add_to(m)
 
         folium.LayerControl(collapsed=False).add_to(m)
-        st_folium(
+
+        # Добавляем инструменты измерения и рисования
+        m.add_child(MeasureControl(primary_length_unit='meters'))
+        # export=True не работает корректно со streamlit-folium,
+        # поэтому мы будем обрабатывать экспорт вручную
+        m.add_child(Draw())
+
+        # Отображаем карту и получаем нарисованные объекты обратно
+        output = st_folium(
             m,
             width=MAP_DIMENSIONS.get("width", "100%"),
             height=MAP_DIMENSIONS.get("height", 600),
-            returned_objects=[]
+            returned_objects=["all_drawings"]
         )
+
+        # Обрабатываем нарисованные объекты для скачивания
+        if output.get("all_drawings") and output["all_drawings"]:
+            raw_drawings = output["all_drawings"]
+            processed_features = self._process_drawings(raw_drawings)
+
+            # Создаем корректный GeoJSON FeatureCollection из обработанных данных
+            feature_collection = {
+                "type": "FeatureCollection",
+                "features": processed_features
+            }
+            
+            # Конвертируем в строку для кнопки скачивания
+            geojson_str = json.dumps(feature_collection, indent=2, ensure_ascii=False)
+
+            st.download_button(
+                label="📥 Скачать обработанные объекты (.geojson)",
+                data=geojson_str,
+                file_name="processed_drawn_data.geojson",
+                mime="application/json",
+            )
+
+    def _process_drawings(self, drawings):
+        """
+        Обрабатывает 'сырые' нарисованные объекты, превращая круги в полигоны.
+        """
+        try:
+            import geopandas as gpd
+            from shapely.geometry import Point
+        except ImportError:
+            st.error("Для обработки геометрии необходимы библиотеки 'geopandas' и 'shapely'. Установите их: pip install geopandas shapely")
+            return drawings
+
+        processed_features = []
+        for feature in drawings:
+            # Проверяем, является ли объект кругом (точка с радиусом)
+            if (feature.get('geometry', {}).get('type') == 'Point' and
+                'radius' in feature.get('properties', {})):
+                
+                try:
+                    lon, lat = feature['geometry']['coordinates']
+                    radius_meters = feature['properties']['radius']
+                    
+                    # Создаем GeoDataFrame для точки
+                    temp_gdf = gpd.GeoDataFrame(
+                        [{'geometry': Point(lon, lat)}],
+                        crs="EPSG:4326"
+                    )
+                    
+                    # Оцениваем и переходим в локальную UTM-проекцию для точного буфера
+                    utm_crs = temp_gdf.estimate_utm_crs()
+                    temp_gdf_projected = temp_gdf.to_crs(utm_crs)
+                    
+                    # Строим буфер (полигон)
+                    buffer_polygon = temp_gdf_projected.buffer(radius_meters)
+                    
+                    # Возвращаем полигон обратно в WGS 84
+                    buffer_wgs84 = buffer_polygon.to_crs("EPSG:4326")
+                    
+                    # Обновляем геометрию объекта
+                    # Обновляем геометрию объекта
+                    json_str = gpd.GeoSeries(buffer_wgs84).to_json()
+                    feature['geometry'] = json.loads(json_str)['features'][0]['geometry']
+                    # Удаляем свойство radius, так как оно больше не нужно
+                    del feature['properties']['radius']
+                except Exception as e:
+                    st.warning(f"Не удалось преобразовать нарисованный круг в полигон: {e}")
+            
+            processed_features.append(feature)
+            
+        return processed_features
 
     def _render_data_tables(self, filtered_data):
         """Отображает отфильтрованные данные в виде таблиц."""
@@ -131,11 +225,88 @@ class MapRenderer:
         return center_lat, center_lon, zoom
 
     def _create_popup_html(self, row):
-        """Создает HTML для всплывающего окна маркера."""
-        html = "<div style='font-family: monospace; font-size: 12px;'>"
+        """Создает HTML для всплывающего окна маркера, включая изображения."""
+        from urllib.parse import quote
+        STATIC_SERVER_URL = "http://localhost:8001"
+
+        def prepare_url(path):
+            if not path or not isinstance(path, str):
+                return None
+            clean_path = path.replace("\\", "/").lstrip("/")
+            if clean_path.startswith("storage/"):
+                clean_path = clean_path[len("storage/"):]
+            return f"{STATIC_SERVER_URL}/{quote(clean_path)}"
+
+        html = "<div style='font-family: monospace; font-size: 12px; max-width: 350px;'>"
         html += f"<h5><b>{row.get('name', 'Объект')}</b></h5><hr style='margin: 2px 0;'>"
+        
+        # Сначала добавляем все текстовые поля
         for col, value in row.items():
-            if col.lower() not in ['geometry', 'geometry_wkt', 'latitude', 'longitude', 'coordinates', 'name'] and pd.notna(value):
+            if col.lower().startswith("foto"):
+                continue # Пропускаем фото, обработаем их отдельно
+            if col.lower() not in ['geometry', 'geometry_wkt', 'latitude', 'longitude', 'coordinates', 'name', 'buffer_geojson'] and pd.notna(value):
                 html += f"<b>{col}:</b> {value}<br>"
+        
+        # Затем добавляем изображения
+        for col, value in row.items():
+            if col.lower().startswith("foto") and pd.notna(value):
+                img_url = prepare_url(value)
+                if img_url:
+                    html += f"<hr style='margin: 5px 0;'><b style='display: block; margin-bottom: 5px;'>{col}:</b>"
+                    html += f"<img src='{img_url}' alt='{col}' style='width:100%; max-height: 250px; object-fit: cover; border-radius: 4px;'>"
+
         html += "</div>"
         return html
+
+    def _create_geojson_features(self, df, style):
+        """Создает список GeoJSON-объектов для TimestampedGeoJson."""
+        features = []
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values(by='date')
+
+        for _, row in df.iterrows():
+            if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
+                feature = {
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [row['longitude'], row['latitude']]
+                    },
+                    'properties': {
+                        'time': row['date'].isoformat(),
+                        'popup': self._create_popup_html(row),
+                        'icon': 'circle',
+                        'iconstyle': {
+                            'fillColor': style.get('fill_color', 'grey'),
+                            'fillOpacity': 0.8,
+                            'stroke': 'true',
+                            'color': style.get('color', 'black'),
+                            'weight': 2,
+                            'radius': style.get('radius', 5)
+                        }
+                    }
+                }
+                features.append(feature)
+
+                # Добавляем буферную зону как отдельный объект для той же временной метки
+                if 'buffer_geojson' in row and pd.notna(row['buffer_geojson']):
+                    try:
+                        geojson_data = json.loads(row['buffer_geojson'])
+                        buffer_feature = {
+                            'type': 'Feature',
+                            'geometry': geojson_data,
+                            'properties': {
+                                'time': row['date'].isoformat(),
+                                'style': {
+                                    'fillColor': style.get('buffer_fill_color', '#3186cc'),
+                                    'color': style.get('buffer_fill_color', '#3186cc'),
+                                    'weight': 1,
+                                    'fillOpacity': style.get('buffer_fill_opacity', 0.2)
+                                }
+                            }
+                        }
+                        features.append(buffer_feature)
+                    except (json.JSONDecodeError, TypeError):
+                        pass # Игнорируем ошибки парсинга буфера
+
+        return features

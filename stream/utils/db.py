@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 # Параметры подключения — можно вынести в config.py позже
 DB_CONFIG = {
-    "host": "localhost",      # так как Podman пробрасывает порт на localhost
+    "host": "localhost",
     "port": 5432,             # стандартный порт PostgreSQL
     "database": "bee",     # имя вашей БД
     "user": "bee",    # ваш пользователь
