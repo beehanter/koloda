@@ -1,27 +1,27 @@
 {
     "memento\\gse\\beekeepers\\beekeepers.csv": {
-        "mtime": 1760430445.0,
-        "hash": "f4a639f35ebc95ac2777da83a5ca4d611304e0a990df6bcc0e7092393c53e108",
-        "processed_at": "2025-10-17T09:31:42.671044+00:00"
+        "mtime": 1762886547.0081336,
+        "hash": "9faa7066b6bd3ff858e2c514c164a4e96cdafe486f0d133b5f7cf2fe286d0dba",
+        "processed_at": "2025-11-12T16:41:39.453451+00:00"
     },
     "memento\\gse\\koloda\\koloda.csv": {
-        "mtime": 1760430445.0,
-        "hash": "0c4e57e1557a86c0c5cb032f30b2d61f4764fd9f7b5db13f529ddfed7d1ca6bd",
-        "processed_at": "2025-10-17T09:31:42.771235+00:00"
+        "mtime": 1762965467.382571,
+        "hash": "a3efe7156b79248a0d8bda9a56316d22fc85df8f2753aee234adc87036065203",
+        "processed_at": "2025-11-12T16:47:06.708895+00:00"
     },
     "memento\\gse\\osmotr\\osmotr.csv": {
-        "mtime": 1760430445.0,
-        "hash": "c9fe144537ed7d9bc21fdf8c50c74ed29c09386bcfd7d528323132642daa65cc",
-        "processed_at": "2025-10-17T09:31:42.830648+00:00"
+        "mtime": 1762886547.0394144,
+        "hash": "46732c3be0e22d9ae65c797f3e95788a23bd1802a68ca908325328944d3b4f90",
+        "processed_at": "2025-11-12T16:41:43.175048+00:00"
     },
     "memento\\gse\\paseki\\paseki.csv": {
-        "mtime": 1760430445.0,
-        "hash": "a22f65ce6e887571253ef0b0169bf0850b3cfb4d65c0b530f0e0d358e368932d",
-        "processed_at": "2025-10-17T09:31:42.860975+00:00"
+        "mtime": 1761156999.8047538,
+        "hash": "eaf449d9af7facb779c3810b5eabc16bd49f0ee33c6b4cee9a4b4a4100687c6f",
+        "processed_at": "2025-11-12T16:59:24.713163+00:00"
     },
     "memento\\gse\\test\\test.csv": {
-        "mtime": 1760430445.0,
-        "hash": "a021e7b2ea78b15f6f2813cdc5e02767a26e80e0314a791665a03bbafb839753",
-        "processed_at": "2025-10-17T09:31:42.896852+00:00"
+        "mtime": 1762886547.148762,
+        "hash": "f01e600f5e6247fa44d39bdd8a3cbc5d3b6bc98e0bcd1c88ddfa83bb03288d46",
+        "processed_at": "2025-11-12T16:41:43.299140+00:00"
     }
 }

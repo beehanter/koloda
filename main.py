@@ -70,6 +70,13 @@ def process_osmotr(df: pd.DataFrame, db: DBManager, csv_path: Path):
     db.upsert_osmotr(convert_to_native_types(df[cols]))
 
 def process_paseki(df: pd.DataFrame, db: DBManager, csv_path: Path):
+    # Переименовываем колонку 'paseka' в 'adres', если она существует
+    if 'paseka' in df.columns:
+        df = df.rename(columns={'paseka': 'adres'})
+    elif 'adres' not in df.columns:
+        # Если ни 'paseka', ни 'adres' не существуют, добавляем пустую колонку 'adres'
+        df['adres'] = None
+        
     df['coordinates'] = df['coordinates'].apply(transform_coordinates)
     df['foto'] = df['foto'].apply(lambda x: transform_photo_path(x, csv_path, MEMENTO_DIR, STORAGE_DIR))
     df['row_hash'] = df.apply(generate_row_hash, axis=1)
