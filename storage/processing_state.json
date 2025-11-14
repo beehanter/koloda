@@ -1,27 +1,37 @@
 {
     "memento\\gse\\beekeepers\\beekeepers.csv": {
-        "mtime": 1762886547.0081336,
-        "hash": "9faa7066b6bd3ff858e2c514c164a4e96cdafe486f0d133b5f7cf2fe286d0dba",
-        "processed_at": "2025-11-12T16:41:39.453451+00:00"
+        "mtime": 1759770024.7651317,
+        "hash": "f4a639f35ebc95ac2777da83a5ca4d611304e0a990df6bcc0e7092393c53e108",
+        "processed_at": "2025-11-14T19:34:19.813572+00:00"
+    },
+    "memento\\gse\\place\\place.csv": {
+        "mtime": 1763140866.9832506,
+        "hash": "bb63e4d23199363b8377067c407185cf5eef9b33d4b7e3b03c82db02e3f2400c",
+        "processed_at": "2025-11-14T19:34:19.946554+00:00"
     },
     "memento\\gse\\koloda\\koloda.csv": {
-        "mtime": 1762965467.382571,
-        "hash": "a3efe7156b79248a0d8bda9a56316d22fc85df8f2753aee234adc87036065203",
-        "processed_at": "2025-11-12T16:47:06.708895+00:00"
+        "mtime": 1763139404.5063958,
+        "hash": "332fd6246f9610aceb3cb1c1affffe3e6754af740d0f8deeeccb131f17f96427",
+        "processed_at": "2025-11-14T19:34:20.093180+00:00"
+    },
+    "memento\\gse\\matki\\matki.csv": {
+        "mtime": 1761157814.9435265,
+        "hash": "ccafe47ee5fb4e5f6c7982f438aa00e3027626058e42272132e89cd3382f7735",
+        "processed_at": "2025-11-14T19:34:20.103603+00:00"
     },
     "memento\\gse\\osmotr\\osmotr.csv": {
-        "mtime": 1762886547.0394144,
-        "hash": "46732c3be0e22d9ae65c797f3e95788a23bd1802a68ca908325328944d3b4f90",
-        "processed_at": "2025-11-12T16:41:43.175048+00:00"
+        "mtime": 1763136331.9164643,
+        "hash": "92ec2ff68d643cfb7728124eb0b3309132bec289477be81dcb0a84c7f00e5f3a",
+        "processed_at": "2025-11-14T19:34:20.238552+00:00"
     },
     "memento\\gse\\paseki\\paseki.csv": {
-        "mtime": 1761156999.8047538,
-        "hash": "eaf449d9af7facb779c3810b5eabc16bd49f0ee33c6b4cee9a4b4a4100687c6f",
-        "processed_at": "2025-11-12T16:59:24.713163+00:00"
+        "mtime": 1763140830.7924845,
+        "hash": "c069baaa484ecd321b5ab6060c12828a22d75cbe254443f09bbf1b5784a00df3",
+        "processed_at": "2025-11-14T19:34:20.363309+00:00"
     },
     "memento\\gse\\test\\test.csv": {
-        "mtime": 1762886547.148762,
-        "hash": "f01e600f5e6247fa44d39bdd8a3cbc5d3b6bc98e0bcd1c88ddfa83bb03288d46",
-        "processed_at": "2025-11-12T16:41:43.299140+00:00"
+        "mtime": 1763138969.686473,
+        "hash": "f2bb6d0e2bdc6c156e2350db7aa0351f53b2a71e6b9035cf7c958671de359f38",
+        "processed_at": "2025-11-14T19:34:20.421926+00:00"
     }
 }

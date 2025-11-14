@@ -73,12 +73,15 @@ class DBManager:
             cols_str = ", ".join(columns)
             execute_values(self.cur, f"INSERT INTO {temp_table_name} ({cols_str}) VALUES %s", data)
 
-            update_set_str = ", ".join([f"{col} = s.{col}" for col in columns if col not in pk_columns])
+            # Список столбцов для обновления, исключая первичные ключи и row_hash
+            update_cols = [col for col in columns if col not in pk_columns and col != 'row_hash']
+            update_set_str = ", ".join([f"{col} = s.{col}" for col in update_cols])
             pk_join_str = " AND ".join([f"t.{pk} = s.{pk}" for pk in pk_columns])
             
+            # Обновляем запись, только если row_hash изменился
             update_query = f"""
                 UPDATE {table_name} t
-                SET {update_set_str}
+                SET {update_set_str}, row_hash = s.row_hash
                 FROM {temp_table_name} s
                 WHERE {pk_join_str} AND t.row_hash IS DISTINCT FROM s.row_hash;
             """
@@ -105,30 +108,35 @@ class DBManager:
         self._execute_upsert("beekeepers", cols, pk_cols, data)
 
     def upsert_koloda(self, data: List[Tuple]):
-        cols = ["koloda_id", "region", "place", "date", "beekeeper", "tree", "material", "tipe", 
-                "height_loc", "letok_orient", "diametr_out", "diametr_in", "height_koloda", 
+        cols = ["koloda_id", "date", "place", "beekeeper", "tree", "material", "tipe",
+                "height_loc", "letok_orient", "diametr_out", "diametr_in", "height_koloda",
                 "foto", "pro_foto", "info", "coordinates", "row_hash"]
-        pk_cols = ["koloda_id", "region", "place", "beekeeper"]
+        pk_cols = ["koloda_id"]
         self._execute_upsert("koloda", cols, pk_cols, data)
 
     def upsert_osmotr(self, data: List[Tuple]):
-        cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id", "status", 
-                "foto_out", "pro_foto_out", "foto_in", "pro_foto_in", "info", 
+        cols = ["date", "koloda_id", "status",
+                "foto_out", "pro_foto_out", "foto_in", "pro_foto_in", "info",
                 "plan", "date_plan", "row_hash"]
-        pk_cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id"]
+        pk_cols = ["date", "koloda_id"]
         self._execute_upsert("osmotr", cols, pk_cols, data)
 
     def upsert_paseki(self, data: List[Tuple]):
-        cols = ["beekeeper", "adres", "date", "place", "coordinates", "date_start", 
+        cols = ["beekeeper", "paseka", "date", "place", "coordinates", "date_start",
                 "many_bees", "obrabotki", "poroda", "data_poroda", "foto", "row_hash"]
-        pk_cols = ["beekeeper", "adres"]
+        pk_cols = ["beekeeper", "paseka"]
         self._execute_upsert("paseki", cols, pk_cols, data)
 
     def upsert_test(self, data: List[Tuple]):
-        cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id", "poroda", 
+        cols = ["date", "koloda_id", "poroda",
                 "data_poroda", "foto_varroa", "varroa_test", "row_hash"]
-        pk_cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id"]
+        pk_cols = ["date", "koloda_id"]
         self._execute_upsert("test", cols, pk_cols, data)
+
+    def upsert_place(self, data: List[Tuple]):
+        cols = ["place", "region", "rayon", "oopt", "image", "row_hash"]
+        pk_cols = ["place"]
+        self._execute_upsert("place", cols, pk_cols, data)
 
     def __enter__(self):
         return self

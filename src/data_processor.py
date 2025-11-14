@@ -39,24 +39,6 @@ def transform_photo_path(original_path: str, csv_file_path: Path, memento_dir: P
     return str(relative_path)
 
 
-def parse_composite_key(key_string: str) -> tuple | None:
-    """
-    Разбирает составной ключ из формата "1 _33 _Лухский _gse" 
-    на кортеж ('1', '33', 'Лухский', 'gse').
-
-    :param key_string: Строка с составным ключом.
-    :return: Кортеж из частей ключа или None, если строка некорректна.
-    """
-    if not isinstance(key_string, str) or not key_string:
-        return None, None, None, None
-    
-    parts = key_string.split(' _')
-    if len(parts) == 4:
-        return tuple(parts)
-    
-    logging.warning(f"Не удалось разобрать составной ключ: '{key_string}'. Ожидалось 4 части, найдено {len(parts)}.")
-    return None, None, None, None
-
 def transform_coordinates(coord_string: str) -> str | None:
     """
     Преобразует строку с координатами "lat,lon" в PostGIS-совместимый

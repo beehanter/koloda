@@ -8,7 +8,6 @@ from src.db_manager import DBManager
 from src.file_utils import find_media_files, copy_file_to_storage
 from src.data_processor import (
     transform_photo_path,
-    parse_composite_key,
     transform_coordinates,
     generate_row_hash
 )
@@ -58,25 +57,23 @@ def process_koloda(df: pd.DataFrame, db: DBManager, csv_path: Path):
     db.upsert_koloda(convert_to_native_types(df))
 
 def process_osmotr(df: pd.DataFrame, db: DBManager, csv_path: Path):
-    keys_df = df['koloda'].apply(lambda x: pd.Series(parse_composite_key(x), index=['koloda_id', 'region_id', 'place_id', 'beekeeper_id'])).dropna(subset=['koloda_id'])
-    df = pd.concat([df, keys_df], axis=1)
+    df = df.rename(columns={'koloda': 'koloda_id'})
     df['foto_out'] = df['foto_out'].apply(lambda x: transform_photo_path(x, csv_path, MEMENTO_DIR, STORAGE_DIR))
     df['foto_in'] = df['foto_in'].apply(lambda x: transform_photo_path(x, csv_path, MEMENTO_DIR, STORAGE_DIR))
     df['row_hash'] = df.apply(generate_row_hash, axis=1)
-    df = df.drop(columns=['koloda'])
-    cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id", "status",
+    cols = ["date", "koloda_id", "status",
             "foto_out", "pro_foto_out", "foto_in", "pro_foto_in", "info",
             "plan", "date_plan", "row_hash"]
     db.upsert_osmotr(convert_to_native_types(df[cols]))
+def process_place(df: pd.DataFrame, db: DBManager, csv_path: Path):
+    df['row_hash'] = df.apply(generate_row_hash, axis=1)
+    cols = ["place", "region", "rayon", "oopt", "image", "row_hash"]
+    db.upsert_place(convert_to_native_types(df[cols]))
+
 
 def process_paseki(df: pd.DataFrame, db: DBManager, csv_path: Path):
-    # Переименовываем колонку 'paseka' в 'adres', если она существует
-    if 'paseka' in df.columns:
-        df = df.rename(columns={'paseka': 'adres'})
-    elif 'adres' not in df.columns:
-        # Если ни 'paseka', ни 'adres' не существуют, добавляем пустую колонку 'adres'
-        df['adres'] = None
-        
+    # В колонке 'place' находится название населенного пункта (например, "Гороховец")
+    # В колонке 'paseka' находится название самой пасеки (например, "Омлево")
     df['coordinates'] = df['coordinates'].apply(transform_coordinates)
     df['foto'] = df['foto'].apply(lambda x: transform_photo_path(x, csv_path, MEMENTO_DIR, STORAGE_DIR))
     df['row_hash'] = df.apply(generate_row_hash, axis=1)
@@ -84,18 +81,15 @@ def process_paseki(df: pd.DataFrame, db: DBManager, csv_path: Path):
     if not original_non_numeric.empty:
         logging.warning(f"В файле {csv_path.name} в колонке 'many_bees' найдены нечисловые значения, которые будут заменены на NULL: {original_non_numeric.tolist()}")
     df['many_bees'] = pd.to_numeric(df['many_bees'], errors='coerce')
-    
-    db_cols = ["beekeeper", "adres", "date", "place", "coordinates", "date_start",
+    db_cols = ["beekeeper", "paseka", "date", "place", "coordinates", "date_start",
                "many_bees", "obrabotki", "poroda", "data_poroda", "foto", "row_hash"]
     db.upsert_paseki(convert_to_native_types(df[db_cols]))
 
 def process_test(df: pd.DataFrame, db: DBManager, csv_path: Path):
-    keys_df = df['koloda'].apply(lambda x: pd.Series(parse_composite_key(x), index=['koloda_id', 'region_id', 'place_id', 'beekeeper_id'])).dropna(subset=['koloda_id'])
-    df = pd.concat([df, keys_df], axis=1)
+    df = df.rename(columns={'koloda': 'koloda_id'})
     df['foto_varroa'] = df['foto_varroa'].apply(lambda x: transform_photo_path(x, csv_path, MEMENTO_DIR, STORAGE_DIR))
     df['row_hash'] = df.apply(generate_row_hash, axis=1)
-    df = df.drop(columns=['koloda'])
-    cols = ["date", "koloda_id", "region_id", "place_id", "beekeeper_id", "poroda",
+    cols = ["date", "koloda_id", "poroda",
             "data_poroda", "foto_varroa", "varroa_test", "row_hash"]
     db.upsert_test(convert_to_native_types(df[cols]))
 
@@ -116,6 +110,7 @@ def dispatch_processor(file_path: Path, df: pd.DataFrame, db: DBManager):
         "koloda.csv": process_koloda,
         "osmotr.csv": process_osmotr,
         "paseki.csv": process_paseki,
+        "place.csv": process_place,
         "test.csv": process_test,
     }
     processor = processors.get(file_path.name)
@@ -176,8 +171,9 @@ def main():
 
     all_csv_files = list(MEMENTO_DIR.rglob('*.csv'))
     beekeepers_files = [p for p in all_csv_files if p.name == 'beekeepers.csv']
-    other_files = [p for p in all_csv_files if p.name != 'beekeepers.csv']
-    sorted_csv_files = beekeepers_files + other_files
+    place_files = [p for p in all_csv_files if p.name == 'place.csv']
+    other_files = [p for p in all_csv_files if p.name not in ['beekeepers.csv', 'place.csv']]
+    sorted_csv_files = beekeepers_files + place_files + other_files
 
     try:
         with DBManager() as db_manager:
