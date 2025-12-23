@@ -1,6 +1,10 @@
 services:
   db:
-    build: ./podman
+    build:
+      context: ./podman
+      dockerfile: Dockerfile
+    container_name: koloda-postgres
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -9,7 +13,17 @@ services:
       POSTGRES_DB: bee
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./podman/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=128MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bee"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
-  
